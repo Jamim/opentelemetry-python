@@ -62,13 +62,18 @@ implicit or explicit context propagation consistently throughout.
 """
 
 from contextlib import contextmanager
-import typing
+from typing import Callable
+from typing import Dict
+from typing import Iterator
+from typing import Optional
+from typing import Type
+from typing import Union
 
 from opentelemetry import loader
 from opentelemetry import types
 
 # TODO: quarantine
-ParentSpan = typing.Optional[typing.Union['Span', 'SpanContext']]
+ParentSpan = Optional[Union['Span', 'SpanContext']]
 
 
 class Span:
@@ -155,7 +160,7 @@ class TraceOptions(int):
 DEFAULT_TRACE_OPTIONS = TraceOptions.get_default()
 
 
-class TraceState(typing.Dict[str, str]):
+class TraceState(Dict[str, str]):
     """A list of key-value pairs representing vendor-specific trace info.
 
     Keys and values are strings of up to 256 printable US-ASCII characters.
@@ -278,7 +283,7 @@ class Tracer:
     def start_span(self,
                    name: str,
                    parent: ParentSpan = CURRENT_SPAN
-                   ) -> typing.Iterator['Span']:
+                   ) -> Iterator['Span']:
         """Context manager for span creation.
 
         Create a new span. Start the span and set it as the current span in
@@ -362,7 +367,7 @@ class Tracer:
         return INVALID_SPAN
 
     @contextmanager  # type: ignore
-    def use_span(self, span: 'Span') -> typing.Iterator[None]:
+    def use_span(self, span: 'Span') -> Iterator[None]:
         """Context manager for controlling a span's lifetime.
 
         Start the given span and set it as the current span in this tracer's
@@ -378,9 +383,10 @@ class Tracer:
         yield
 
 
-_TRACER: typing.Optional[Tracer] = None
-_TRACER_FACTORY: typing.Optional[
-    typing.Callable[[typing.Type[Tracer]], typing.Optional[Tracer]]] = None
+FactoryType = Callable[[Type[Tracer]], Optional[Tracer]]
+
+_TRACER = None  # type: Optional[Tracer]
+_TRACER_FACTORY = None  # type: Optional[FactoryType]
 
 
 def tracer() -> Tracer:
@@ -398,10 +404,7 @@ def tracer() -> Tracer:
     return _TRACER
 
 
-def set_preferred_tracer_implementation(
-        factory: typing.Callable[
-            [typing.Type[Tracer]], typing.Optional[Tracer]]
-        ) -> None:
+def set_preferred_tracer_implementation(factory: FactoryType) -> None:
     """Set the factory to be used to create the tracer.
 
     See :mod:`opentelemetry.loader` for details.
